@@ -69,77 +69,64 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 /* ----- ADD SHADOW ON NAVIGATION BAR WHILE SCROLLING & MAKE IT STICKY ----- */
-// rAF throttle for scroll work
-let navScheduled = false;
+window.onscroll = function() {handleNavigation();};
+
 function handleNavigation() {
-  if (navScheduled) return;
-  navScheduled = true;
-  requestAnimationFrame(() => {
-    const navHeader = document.getElementById("header");
-    const navSpacer = document.getElementById("nav-spacer");
-    const y = window.scrollY;
+  const navHeader = document.getElementById("header");
+  const navSpacer = document.getElementById("nav-spacer");
+  const scrollPosition = window.scrollY;
 
-    if (y > 100) {
-      navHeader.classList.add("sticky");
-      navSpacer.classList.add("spacer-active");
-    } else {
-      navHeader.classList.remove("sticky");
-      navSpacer.classList.remove("spacer-active");
-    }
-    navScheduled = false;
-  });
+  // Make nav sticky after scrolling past a certain point
+  if (scrollPosition > 100) {
+    navHeader.classList.add("sticky");
+    navSpacer.classList.add("spacer-active");
+  } else {
+    navHeader.classList.remove("sticky");
+    navSpacer.classList.remove("spacer-active");
+  }
+  
+  // Apply shadow based on scroll position
+  if (scrollPosition > 50) {
+    navHeader.style.boxShadow = "0 1px 6px rgba(0, 0, 0, 0.1)";
+    navHeader.style.height = "70px";
+    navHeader.style.lineHeight = "70px";
+  } else if (scrollPosition <= 50 && !navHeader.classList.contains("sticky")) {
+    navHeader.style.boxShadow = "none";
+    navHeader.style.height = "90px";
+    navHeader.style.lineHeight = "90px";
+  }
+  
+  // Call the scrollActive function to update active links
+  scrollActive();
 }
-
-// Bind once with passive flag for performance
-window.addEventListener('scroll', handleNavigation, { passive: true });
 
 /* ----- CHANGE ACTIVE LINK ----- */
-// Build a map from section id -> nav link
-const linkById = new Map(
-  [...document.querySelectorAll('.nav-menu a[href^="#"]')]
-    .map(a => [a.getAttribute('href').slice(1), a])
-);
+const sections = document.querySelectorAll('section[id]');
 
-function setActive(id) {
-  // Remove all active links first
-  document.querySelectorAll('.nav-menu a').forEach(a => {
-    a.classList.remove('active-link');
-    a.removeAttribute('aria-current');
+function scrollActive() {
+  const scrollY = window.scrollY;
+
+  sections.forEach(current => {
+    const sectionHeight = current.offsetHeight,
+        sectionTop = current.offsetTop - 50,
+        sectionId = current.getAttribute('id');
+    
+    // Use attribute selector with quotes to handle special characters
+    const navLink = document.querySelector(`.nav-menu a[href*="${sectionId}"]`);
+    
+    if(scrollY > sectionTop && scrollY <= sectionTop + sectionHeight) { 
+      if(navLink) navLink.classList.add('active-link');
+    } else {
+      if(navLink) navLink.classList.remove('active-link');
+    }
   });
   
-  // Set the active link
-  const link = linkById.get(id);
-  if (link) {
-    link.classList.add('active-link');
-    link.setAttribute('aria-current', 'page');
-  }
-  
   // Special case for home when at the top
-  if (window.scrollY < 50) {
+  if(scrollY < 50) {
     const homeLink = document.querySelector('.nav-menu a[href*="home"]');
-    if (homeLink) {
-      homeLink.classList.add('active-link');
-      homeLink.setAttribute('aria-current', 'page');
-    }
+    if(homeLink) homeLink.classList.add('active-link');
   }
 }
-
-// Initialize Intersection Observer for section visibility
-document.addEventListener('DOMContentLoaded', function() {
-  const io = new IntersectionObserver((entries) => {
-    // prefer the most centered/visible section
-    const visible = entries
-      .filter(e => e.isIntersecting)
-      .sort((a,b) => b.intersectionRatio - a.intersectionRatio);
-    if (visible[0]) setActive(visible[0].target.id);
-  }, { root: null, threshold: [0.2, 0.5, 0.75] });
-
-  // Observe all sections once
-  document.querySelectorAll('section[id]').forEach(sec => io.observe(sec));
-  
-  // Set initial active link
-  setActive(window.location.hash.slice(1) || 'home');
-});
 
 /* ----- GALLERY LIGHTBOX FUNCTIONALITY ----- */
 document.addEventListener('DOMContentLoaded', function() {
@@ -250,23 +237,14 @@ document.addEventListener('DOMContentLoaded', function() {
   /* ----- SCROLL TO TOP BUTTON ----- */
   const scrollToTopBtn = document.getElementById('scrollToTopBtn');
     
-  // Show/hide button based on scroll position - throttled via rAF
-  let scrollBtnScheduled = false;
-  function updateScrollToTopButton() {
-    if (scrollBtnScheduled) return;
-    scrollBtnScheduled = true;
-    
-    requestAnimationFrame(() => {
-      if (window.scrollY > 300) {
-        scrollToTopBtn.classList.add('visible');
-      } else {
-        scrollToTopBtn.classList.remove('visible');
-      }
-      scrollBtnScheduled = false;
-    });
-  }
-  
-  window.addEventListener('scroll', updateScrollToTopButton, { passive: true });
+  // Show/hide button based on scroll position
+  window.addEventListener('scroll', function() {
+    if (window.scrollY > 300) {
+      scrollToTopBtn.classList.add('visible');
+    } else {
+      scrollToTopBtn.classList.remove('visible');
+    }
+  });
     
   // Scroll to top with smooth animation when button is clicked
   scrollToTopBtn.addEventListener('click', function() {
@@ -630,9 +608,7 @@ function initAnimations() {
   }
 
   if (window.ScrollReveal) {
-    // Use optimized settings with smaller duration and reset:false
-    const base = { distance: '60px', duration: 800, reset: false, viewFactor: 0.2 };
-    const sr = ScrollReveal({ origin: 'top', ...base });
+    const sr = ScrollReveal({ origin: 'top', distance: '80px', duration: 2000, reset: true });
     sr.reveal('.featured-text-card', {});
     sr.reveal('.featured-name', { delay: 100 });
     sr.reveal('.featured-text-info', { delay: 200 });
@@ -642,12 +618,10 @@ function initAnimations() {
     sr.reveal('.project-box', { interval: 200 });
     sr.reveal('.gallery-item', { interval: 200 });
     sr.reveal('.top-header', {});
-    
-    const srLeft = ScrollReveal({ origin: 'left', ...base });
+    const srLeft = ScrollReveal({ origin: 'left', distance: '80px', duration: 2000, reset: true });
     srLeft.reveal('.about-info', { delay: 100 });
     srLeft.reveal('.contact-info', { delay: 100 });
-    
-    const srRight = ScrollReveal({ origin: 'right', ...base });
+    const srRight = ScrollReveal({ origin: 'right', distance: '80px', duration: 2000, reset: true });
     srRight.reveal('.skills-box', { delay: 100 });
     srRight.reveal('.form-control', { delay: 100 });
   }
@@ -659,8 +633,11 @@ if ('requestIdleCallback' in window) {
   window.addEventListener('load', () => setTimeout(initAnimations, 800));
 }
 
-// Set current year in footer
+// Call scrollActive once on page load to set initial active state
 document.addEventListener('DOMContentLoaded', function() {
+  scrollActive();
+  
+  // Set current year in footer
   const yearElement = document.getElementById('current-year');
   if (yearElement) {
     yearElement.textContent = new Date().getFullYear();
