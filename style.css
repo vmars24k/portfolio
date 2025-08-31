@@ -120,6 +120,7 @@ html{
     width: 100%;
     height: 100%;
     z-index: 1;
+    background: linear-gradient(to bottom, rgba(0,0,0,.35), rgba(0,0,0,.35));
 }
 
 .video-content {
@@ -1642,7 +1643,7 @@ footer{
 
 /* Focus visible for accessibility */
 :focus-visible {
-    outline: 2px solid var(--first-color);
+    outline: 3px solid var(--first-color);
     outline-offset: 2px;
 }
 
